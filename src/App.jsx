@@ -1355,6 +1355,7 @@ export default function App() {
   ]);
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isPageLoading, setIsPageLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -1436,10 +1437,29 @@ export default function App() {
     );
   }
 
+  if (isPageLoading) {
+    return (
+      <div className="min-h-screen bg-[#F8F9FB] flex items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-14 w-14 animate-spin rounded-full border-4 border-[#0C1B33]/10 border-t-[#B8863B]" />
+          <div className="font-display text-2xl font-bold text-[#0C1B33]">Loading page...</div>
+          <div className="mt-2 text-sm text-slate-500">Switching to the next section</div>
+        </div>
+      </div>
+    );
+  }
+
   const nav = (id, product) => {
     if (product) setSelectedProduct(product);
-    setPage(id);
-    window.scrollTo({ top: 0, behavior: "instant" });
+    setIsPageLoading(true);
+
+    const timeoutId = window.setTimeout(() => {
+      setPage(id);
+      window.scrollTo({ top: 0, behavior: "instant" });
+      setIsPageLoading(false);
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
   };
   nav.current = page;
 
