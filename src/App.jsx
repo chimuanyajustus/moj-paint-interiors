@@ -1091,6 +1091,7 @@ function AboutPage() {
 /* ------------------------------------------------------------------ */
 
 function AdminShell({ page, nav, children }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const items = [
     { id: "admin-dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "admin-products", label: "Products", icon: Package },
@@ -1104,7 +1105,7 @@ function AdminShell({ page, nav, children }) {
   ];
   return (
     <div className="min-h-screen flex bg-[#F5F7FB] font-body">
-      <aside className="w-60 text-slate-300 flex flex-col shrink-0" style={{ background: NAVY_DEEP }}>
+      <aside className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[calc(100vw-3rem)] flex-col text-slate-300 transition-transform duration-200 md:static md:w-60 md:max-w-none md:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`} style={{ background: NAVY_DEEP }}>
         <div className="p-5 border-b border-white/10"><Logo dark /></div>
         <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10">
           <div className="w-9 h-9 rounded-full text-[#0C1B33] font-bold flex items-center justify-center text-sm" style={{ background: GOLD_LIGHT }}>A</div>
@@ -1120,7 +1121,7 @@ function AdminShell({ page, nav, children }) {
             return (
               <button
                 key={it.id}
-                onClick={() => nav(it.id)}
+                onClick={() => { nav(it.id); setMobileOpen(false); }}
                 className={`w-full flex items-center gap-3 px-5 py-2.5 text-sm font-medium ${active ? "font-semibold" : "hover:bg-white/5 text-slate-300"}`}
                 style={active ? { background: GOLD_LIGHT, color: NAVY_DEEP } : {}}
               >
@@ -1129,18 +1130,27 @@ function AdminShell({ page, nav, children }) {
             );
           })}
         </nav>
-        <button onClick={() => nav("home")} className="flex items-center gap-3 px-5 py-4 border-t border-white/10 text-sm font-medium hover:bg-white/5">
+        <button onClick={() => { nav("home"); setMobileOpen(false); }} className="flex items-center gap-3 px-5 py-4 border-t border-white/10 text-sm font-medium hover:bg-white/5">
           <LogOut size={16} /> Logout
         </button>
       </aside>
-      <main className="flex-1 min-w-0">{children}</main>
+      {mobileOpen && <button aria-label="Close navigation" onClick={() => setMobileOpen(false)} className="fixed inset-0 z-30 bg-[#081222]/50 md:hidden" />}
+      <main className="min-w-0 flex-1">
+        <div className="flex items-center justify-between border-b border-slate-100 bg-white px-4 py-3 md:hidden">
+          <Logo compact />
+          <button aria-label="Open navigation" onClick={() => setMobileOpen(true)} className="flex h-10 w-10 items-center justify-center rounded-md text-[#0C1B33] hover:bg-slate-100">
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
+        {children}
+      </main>
     </div>
   );
 }
 
 function AdminTopbar({ title, action }) {
   return (
-    <div className="flex items-center justify-between px-8 py-5 bg-white border-b border-slate-100">
+    <div className="flex flex-wrap items-center justify-between gap-3 bg-white px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
       <h1 className="text-lg font-display font-bold text-[#0C1B33]">{title}</h1>
       {action}
     </div>
@@ -1161,12 +1171,12 @@ function AdminDashboard({ nav }) {
   return (
     <div>
       <AdminTopbar title="Dashboard" />
-      <div className="p-8">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
           {stats.map((s) => {
             const Icon = s.icon;
             return (
-              <div key={s.label} className="bg-white rounded-xl p-5 border border-slate-100">
+              <div key={s.label} className="bg-white rounded-xl p-4 sm:p-5 border border-slate-100">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-slate-400">{s.label}</span>
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "#FBF3E4", color: GOLD }}><Icon size={15} /></div>
@@ -1180,13 +1190,13 @@ function AdminDashboard({ nav }) {
           })}
         </div>
 
-        <div className="grid lg:grid-cols-[1fr_320px] gap-5 mt-6">
+        <div className="grid gap-5 mt-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:mt-6">
           <div className="bg-white rounded-xl p-5 border border-slate-100">
             <div className="flex items-center justify-between mb-4">
               <span className="font-display font-semibold text-[#0C1B33] text-sm">Sales Overview</span>
               <Pill>This Year</Pill>
             </div>
-            <ResponsiveContainer width="100%" height={230}>
+            <ResponsiveContainer width="100%" height={230} minWidth={0}>
               <LineChart data={SALES_DATA}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eef1f6" />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
@@ -1235,9 +1245,9 @@ function AdminProducts() {
   return (
     <div>
       <AdminTopbar title="Products" action={<button className="text-[#0C1B33] text-sm font-bold px-4 py-2 rounded-md flex items-center gap-1.5" style={{ background: GOLD_LIGHT }}><Plus size={15} /> Add New Product</button>} />
-      <div className="p-8">
-        <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-          <table className="w-full text-sm">
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="overflow-x-auto rounded-xl border border-slate-100 bg-white">
+          <table className="w-full min-w-[760px] text-sm">
             <thead>
               <tr className="text-left text-xs font-semibold text-slate-400 border-b border-slate-100">
                 <th className="px-5 py-3">Product</th>
@@ -1290,14 +1300,14 @@ function AdminOrders() {
           <Search size={14} className="absolute left-2.5 top-2.5 text-slate-400" />
         </div>
       } />
-      <div className="px-8 pt-5 flex gap-2">
+      <div className="flex gap-2 overflow-x-auto px-4 pt-5 sm:px-6 lg:px-8">
         {tabs.map((t) => (
           <button key={t} onClick={() => setTab(t)} className={`text-xs font-semibold px-3 py-1.5 rounded-full ${tab === t ? "text-white" : "bg-white border border-slate-200 text-slate-500"}`} style={tab === t ? { background: NAVY } : {}}>{t}</button>
         ))}
       </div>
-      <div className="p-8 pt-4">
-        <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-          <table className="w-full text-sm">
+      <div className="p-4 pt-4 sm:p-6 sm:pt-4 lg:p-8 lg:pt-4">
+        <div className="overflow-x-auto rounded-xl border border-slate-100 bg-white">
+          <table className="w-full min-w-[760px] text-sm">
             <thead>
               <tr className="text-left text-xs font-semibold text-slate-400 border-b border-slate-100">
                 <th className="px-5 py-3">Order ID</th><th className="px-5 py-3">Customer</th><th className="px-5 py-3">Date</th>
@@ -1331,7 +1341,7 @@ function AdminPlaceholder({ title }) {
   return (
     <div>
       <AdminTopbar title={title} />
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <div className="bg-white rounded-xl border border-slate-100 p-14 text-center text-slate-400">
           <Settings size={26} className="mx-auto mb-3" />
           {title} management lives here — hook this section up to your data source when ready.
