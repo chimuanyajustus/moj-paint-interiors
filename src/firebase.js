@@ -17,11 +17,19 @@ export const firebaseEnabled = hasFirebaseConfig;
 export const app = hasFirebaseConfig && getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0] || null;
 export const db = app ? getFirestore(app) : null;
 
+function withTimeout(promise, timeoutMs = 5000) {
+  return Promise.race([
+    promise,
+    new Promise((resolve) => window.setTimeout(() => resolve(null), timeoutMs)),
+  ]);
+}
+
 export async function fetchProductsFromDb() {
   if (!db) return null;
 
   try {
-    const snapshot = await getDocs(collection(db, "products"));
+    const snapshot = await withTimeout(getDocs(collection(db, "products")));
+    if (!snapshot) return null;
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
     console.warn("Firebase products fetch failed:", error);
@@ -33,7 +41,8 @@ export async function fetchOrdersFromDb() {
   if (!db) return null;
 
   try {
-    const snapshot = await getDocs(collection(db, "orders"));
+    const snapshot = await withTimeout(getDocs(collection(db, "orders")));
+    if (!snapshot) return null;
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
     console.warn("Firebase orders fetch failed:", error);

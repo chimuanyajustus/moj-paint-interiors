@@ -1241,11 +1241,61 @@ function AdminDashboard({ nav }) {
 /*  ADMIN: PRODUCTS                                                     */
 /* ------------------------------------------------------------------ */
 
-function AdminProducts() {
+function AdminProducts({ onProductsChange }) {
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingPriceId, setEditingPriceId] = useState(null);
+  const [priceDraft, setPriceDraft] = useState("");
+  const [newProduct, setNewProduct] = useState({
+    name: "", brand: BRANDS[0], category: CATEGORIES[0], price: "", stock: "",
+  });
+
+  const updateProducts = (nextProducts) => {
+    PRODUCTS = nextProducts;
+    onProductsChange();
+  };
+
+  const savePrice = (product) => {
+    const price = Number(priceDraft);
+    if (!Number.isFinite(price) || price < 0) return;
+    updateProducts(PRODUCTS.map((item) => item.id === product.id ? { ...item, price } : item));
+    setEditingPriceId(null);
+  };
+
+  const removeProduct = (product) => {
+    if (!window.confirm(`Remove ${product.name} from the catalog?`)) return;
+    updateProducts(PRODUCTS.filter((item) => item.id !== product.id));
+  };
+
+  const addProduct = (event) => {
+    event.preventDefault();
+    const price = Number(newProduct.price);
+    const stock = Number(newProduct.stock);
+    if (!newProduct.name.trim() || !Number.isFinite(price) || price < 0 || !Number.isFinite(stock) || stock < 0) return;
+    const product = {
+      id: PRODUCTS.reduce((highest, item) => Math.max(highest, Number(item.id) || 0), 0) + 1,
+      name: newProduct.name.trim(), brand: newProduct.brand, category: newProduct.category,
+      finish: "Matt", price, stock, rating: 0, reviews: 0, colorTag: "White",
+      desc: "Premium paint product.", photoUrl: "",
+    };
+    updateProducts([...PRODUCTS, product]);
+    setNewProduct({ name: "", brand: BRANDS[0], category: CATEGORIES[0], price: "", stock: "" });
+    setShowAddForm(false);
+  };
+
   return (
     <div>
-      <AdminTopbar title="Products" action={<button className="text-[#0C1B33] text-sm font-bold px-4 py-2 rounded-md flex items-center gap-1.5" style={{ background: GOLD_LIGHT }}><Plus size={15} /> Add New Product</button>} />
+      <AdminTopbar title="Products" action={<button onClick={() => setShowAddForm((visible) => !visible)} className="text-[#0C1B33] text-sm font-bold px-4 py-2 rounded-md flex items-center gap-1.5" style={{ background: GOLD_LIGHT }}><Plus size={15} /> Add New Product</button>} />
       <div className="p-4 sm:p-6 lg:p-8">
+        {showAddForm && (
+          <form onSubmit={addProduct} className="mb-5 grid gap-3 rounded-xl border border-slate-100 bg-white p-4 sm:grid-cols-2 lg:grid-cols-5">
+            <input required value={newProduct.name} onChange={(event) => setNewProduct({ ...newProduct, name: event.target.value })} placeholder="Product name" className="rounded-md border border-slate-200 px-3 py-2 text-sm lg:col-span-2" />
+            <select value={newProduct.brand} onChange={(event) => setNewProduct({ ...newProduct, brand: event.target.value })} className="rounded-md border border-slate-200 px-3 py-2 text-sm">{BRANDS.map((brand) => <option key={brand}>{brand}</option>)}</select>
+            <select value={newProduct.category} onChange={(event) => setNewProduct({ ...newProduct, category: event.target.value })} className="rounded-md border border-slate-200 px-3 py-2 text-sm">{CATEGORIES.map((category) => <option key={category}>{category}</option>)}</select>
+            <input required min="0" type="number" value={newProduct.price} onChange={(event) => setNewProduct({ ...newProduct, price: event.target.value })} placeholder="Price (₦)" className="rounded-md border border-slate-200 px-3 py-2 text-sm" />
+            <input required min="0" type="number" value={newProduct.stock} onChange={(event) => setNewProduct({ ...newProduct, stock: event.target.value })} placeholder="Stock" className="rounded-md border border-slate-200 px-3 py-2 text-sm" />
+            <button type="submit" className="rounded-md px-4 py-2 text-sm font-bold text-white sm:col-span-2 lg:col-span-5 lg:justify-self-end" style={{ background: NAVY }}>Save Product</button>
+          </form>
+        )}
         <div className="overflow-x-auto rounded-xl border border-slate-100 bg-white">
           <table className="w-full min-w-[760px] text-sm">
             <thead>
@@ -1260,7 +1310,7 @@ function AdminProducts() {
               </tr>
             </thead>
             <tbody>
-              {PRODUCTS.slice(0, 9).map((p) => (
+              {PRODUCTS.map((p) => (
                 <tr key={p.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60">
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
@@ -1270,10 +1320,18 @@ function AdminProducts() {
                   </td>
                   <td className="px-5 py-3 text-slate-500">{p.category}</td>
                   <td className="px-5 py-3 text-slate-500">{p.brand.trim()}</td>
-                  <td className="px-5 py-3 text-slate-500">{money(p.price)}</td>
+                  <td className="px-5 py-3 text-slate-500">
+                    {editingPriceId === p.id ? (
+                      <form onSubmit={(event) => { event.preventDefault(); savePrice(p); }} className="flex items-center gap-2">
+                        <input autoFocus type="number" min="0" value={priceDraft} onChange={(event) => setPriceDraft(event.target.value)} className="w-28 rounded border border-slate-300 px-2 py-1 text-sm" aria-label={`Price for ${p.name}`} />
+                        <button type="submit" aria-label="Save price" className="text-emerald-600"><CheckCircle2 size={16} /></button>
+                        <button type="button" aria-label="Cancel price edit" onClick={() => setEditingPriceId(null)} className="text-slate-400"><X size={16} /></button>
+                      </form>
+                    ) : money(p.price)}
+                  </td>
                   <td className="px-5 py-3 text-slate-500">{p.stock}</td>
                   <td className="px-5 py-3"><Pill tone={p.stock < 20 ? "amber" : "green"}>{p.stock < 20 ? "Low Stock" : "In Stock"}</Pill></td>
-                  <td className="px-5 py-3"><MoreVertical size={15} className="text-slate-400" /></td>
+                  <td className="px-5 py-3"><div className="flex items-center gap-3"><button onClick={() => { setEditingPriceId(p.id); setPriceDraft(String(p.price)); }} aria-label={`Edit price for ${p.name}`} className="text-xs font-semibold" style={{ color: GOLD }}>Edit price</button><button onClick={() => removeProduct(p)} aria-label={`Remove ${p.name}`} className="text-red-400 hover:text-red-600"><Trash2 size={15} /></button></div></td>
                 </tr>
               ))}
             </tbody>
@@ -1366,6 +1424,7 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isPageLoading, setIsPageLoading] = useState(false);
+  const [, refreshProducts] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -1497,7 +1556,7 @@ export default function App() {
       {isAdmin ? (
         <AdminShell page={page} nav={nav}>
           {page === "admin-dashboard" && <AdminDashboard nav={nav} />}
-          {page === "admin-products" && <AdminProducts />}
+          {page === "admin-products" && <AdminProducts onProductsChange={() => refreshProducts((version) => version + 1)} />}
           {page === "admin-orders" && <AdminOrders />}
           {page === "admin-customers" && <AdminPlaceholder title="Customers" />}
           {page === "admin-categories" && <AdminPlaceholder title="Categories" />}
